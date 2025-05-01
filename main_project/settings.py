@@ -48,10 +48,10 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -59,17 +59,19 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# CSRF_TRUSTED_ORIGINS = [
+#     "http://localhost:5173",  # 👈 This is your Vite dev server
+# ]
+
+CORS_ALLOW_ALL_ORIGINS = True
+ 
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = [
-    # "http://localhost:8000",
-    "http://127.0.0.1:5173",
-    "http://192.168.159.244:5173",
     "http://localhost:5173",
-    # "http://192.168.8.169:5173",
-    "https://poo-drf.onrender.com",
-    "http://192.168.8.106:8000",   
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True 
+
 
 ROOT_URLCONF = 'main_project.urls'
 
@@ -208,3 +210,4 @@ SIMPLE_JWT = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'user.UserAccount'
+

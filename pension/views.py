@@ -1,8 +1,17 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from .models import RoomType, Room, Guest, Booking, Invoice
-from .serializers import RoomTypeSerializer, RoomSerializer, GuestSerializer, BookingSerializer, InvoiceSerializer
+from .models import RoomType, Room, Guest, Booking, Invoice, AuditLog
+from .serializers import (
+    RoomTypeSerializer, 
+    RoomSerializer, 
+    RoomgetSerializer, 
+    GuestSerializer, 
+    BookingSerializer, 
+    BookingGetSerializer, 
+    InvoiceSerializer,
+    AuditLogSerializer
+)
 
 
 class RoomTypeCreateListAPIView(APIView):
@@ -61,14 +70,17 @@ class RoomCreateListAPIView(APIView):
 
     def get(self, request):
         rooms = Room.objects.all()
-        serializer = RoomSerializer(rooms, many=True)
+        serializer = RoomgetSerializer(rooms, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
         serializer = RoomSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            room = serializer.save()
+            room._current_user = request.user
+            room.save()  # Triggers the signal
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -85,7 +97,7 @@ class RoomRetriveUpdateDeleteAPIView(APIView):
         room = self.get_object(pk)
         if room is None:
             return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = RoomSerializer(room)
+        serializer = RoomgetSerializer(room)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
@@ -94,14 +106,18 @@ class RoomRetriveUpdateDeleteAPIView(APIView):
             return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = RoomSerializer(room, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            updated_room = serializer.save()
+            updated_room._current_user = request.user
+            updated_room.save() # Triggers the signal
             return Response(serializer.data, status=status.HTTP_200_OK)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
         room = self.get_object(pk)
         if room is None:
             return Response({"error": "Room not found"}, status=status.HTTP_404_NOT_FOUND)
+        room._current_user = request.user
         room.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
@@ -121,6 +137,7 @@ class GuestCreateListAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -148,6 +165,7 @@ class GuestRetriveUpdateDeleteAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
@@ -165,7 +183,7 @@ class BookingCreateListAPIView(APIView):
 
     def get(self, request):
         bookings = Booking.objects.all()
-        serializer = BookingSerializer(bookings, many=True)
+        serializer = BookingGetSerializer(bookings, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
@@ -173,6 +191,7 @@ class BookingCreateListAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -189,7 +208,7 @@ class BookingRetriveUpdateDeleteAPIView(APIView):
         booking = self.get_object(pk)
         if booking is None:
             return Response({"error": "Booking not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = BookingSerializer(booking)
+        serializer = BookingGetSerializer(booking)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
@@ -200,6 +219,7 @@ class BookingRetriveUpdateDeleteAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
@@ -225,6 +245,7 @@ class InvoiceCreateListAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -252,6 +273,7 @@ class InvoiceRetriveUpdateDeleteAPIView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
@@ -260,3 +282,13 @@ class InvoiceRetriveUpdateDeleteAPIView(APIView):
             return Response({"error": "Invoice not found"}, status=status.HTTP_404_NOT_FOUND)
         invoice.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+
+class AuditLogListAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        audit_logs = AuditLog.objects.all()
+        serializer = AuditLogSerializer(audit_logs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -10,6 +10,12 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from drf_yasg.utils import swagger_auto_schema
 
 
+class ProtectedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"message": f"Hello, you are authenticated!"})
+
 class UserListCreateAPIView(APIView):
     # permission_classes = (permissions.AllowAny,)   
 
@@ -139,6 +145,7 @@ class UserRetrieveUpdateDeleteAPIView(APIView):
 
             serializer = UserSerializer(users, data=request.data, partial=True)
             if not serializer.is_valid():
+                print(serializer.errors)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             validated_data = serializer.validated_data
